@@ -1,0 +1,5 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Remover medicamento · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}"></head>
+<body class="auth-page"><main class="auth-card"><a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">✚</span><span>Bemoria</span></a><h1>Remover medicamento?</h1><p class="muted">{{ medication.name }} será removido da sua lista ativa. O histórico de doses será mantido.</p><form method="post">{% csrf_token %}<div class="form-actions"><a class="button secondary" href="{% url 'medication-list' %}">Cancelar</a><button class="button danger" type="submit">Remover</button></div></form></main></body></html>

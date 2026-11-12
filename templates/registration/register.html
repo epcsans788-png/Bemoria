@@ -1,0 +1,20 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Criar conta · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}">
+</head>
+<body class="auth-page">
+  <main class="auth-card">
+    <a class="brand" href="/">◉ <span>Bemoria</span></a>
+    <h1>Crie sua conta</h1><p class="muted">Organize seus cuidados em um só lugar.</p>
+    <form method="post">{% csrf_token %}
+      {% for field in form %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<span class="form-error">{{ field.errors|join:", " }}</span>{% endif %}{% endfor %}
+      {% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors|join:", " }}</p>{% endif %}
+      <button class="button primary full" type="submit">Criar conta</button>
+    </form>
+    <p class="tiny muted">Já tem conta? <a class="link" href="{% url 'login' %}">Entrar</a></p>
+  </main>
+</body>
+</html>

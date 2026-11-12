@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Início · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}">
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">✚</span><span>Bemoria</span></a><div class="top-actions"><span class="welcome">Olá, {{ request.user.first_name|default:request.user.username }}</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="text-button">Sair</button></form></div></header>
+  <main class="shell">
+    <section class="greeting"><div><p class="eyebrow">{{ today|date:"l, d \d\e F"|capfirst }}</p><h1>Como podemos cuidar de você hoje?</h1><p class="muted">Sua rotina de saúde, organizada em um só lugar.</p></div><div class="avatar">{{ request.user.username|first|upper }}</div></section>
+    <section class="summary-grid">
+      <article class="summary-card"><span class="summary-icon mint">◷</span><div><span class="muted">Medicamentos ativos</span><strong>{{ medications|length }}</strong></div></article>
+      <article class="summary-card"><span class="summary-icon blue">♡</span><div><span class="muted">Registros recentes</span><strong>{{ records|length }}</strong></div></article>
+      <article class="summary-card"><span class="summary-icon peach">✦</span><div><span class="muted">Lembretes de hoje</span><strong>—</strong></div></article>
+    </section>
+    <div class="content-grid">
+      <section class="panel"><div class="panel-heading"><div><p class="eyebrow">SUA ROTINA</p><h2>Meus medicamentos</h2></div><a class="link" href="#medicamentos">Ver todos <span>→</span></a></div>
+        {% if medications %}<div class="med-list" id="medicamentos">{% for medication in medications %}<article class="med-row"><span class="med-symbol">✚</span><div class="grow"><strong>{{ medication.name }}</strong><p class="muted">{{ medication.dosage }}{% if medication.instructions %} · {{ medication.instructions }}{% endif %}</p></div></article>{% endfor %}</div><a href="{% url 'medication-list' %}" class="button secondary">Gerenciar medicamentos</a>{% if dose_rows %}<div class="checklist-heading"><div><p class="eyebrow">HOJE</p><h3>Checklist de horários</h3></div><span class="check-count">{{ dose_rows|length }} horário{{ dose_rows|length|pluralize:"s" }}</span></div><div class="dose-list">{% for row in dose_rows %}<form class="checklist-row{% if row.taken %} is-taken{% endif %}" method="post" action="{% url 'mark-dose-taken' row.schedule.pk %}">{% csrf_token %}<label class="check-control"><input type="checkbox" name="taken" value="true"{% if row.taken %} checked{% endif %} onchange="this.form.submit()"><span class="checkmark" aria-hidden="true"></span><span class="sr-only">Marcar {{ row.medication.name }} das {{ row.schedule.time|time:"H:i" }} como tomada</span></label><div class="check-info"><strong>{{ row.schedule.time|time:"H:i" }}</strong><span>{{ row.medication.name }} · {{ row.medication.dosage }}</span></div><span class="check-status">{% if row.taken %}Tomada{% else %}Pendente{% endif %}</span></form>{% endfor %}</div>{% endif %}{% else %}<div class="empty-state"><span class="empty-icon">＋</span><h3>Seu espaço começa aqui</h3><p>Cadastre seus medicamentos e organize os horários nesta lista.</p><a href="{% url 'medication-create' %}" class="button secondary">Cadastrar medicamento</a></div>{% endif %}
+      </section>
+      <section class="panel"><div class="panel-heading"><div><p class="eyebrow">ACOMPANHAMENTO</p><h2>Histórico de saúde</h2></div><a class="link" href="{% url 'record-list' %}">Ver histórico →</a></div>
+        {% if records %}<div class="record-list">{% for record in records %}<article class="record-row"><span class="record-dot"></span><div><strong>{{ record.title }}</strong><p class="muted">{{ record.get_kind_display }} · {{ record.occurred_on|date:"d/m/Y" }}</p></div></article>{% endfor %}</div>{% else %}<div class="empty-compact"><span>◎</span><p>Consultas, exames e vacinas registrados ficarão reunidos aqui.</p></div>{% endif %}
+      </section>
+    </div>
+    <section class="privacy-note"><span>♧</span><p><strong>Seus dados são pessoais.</strong> Esta versão está em desenvolvimento. Use apenas informações fictícias até a configuração de segurança e privacidade estar concluída.</p></section>
+  </main>
+  <nav class="bottom-nav"><a class="active" href="{% url 'dashboard' %}"><span>⌂</span>Início</a><a href="{% url 'medication-list' %}"><span>⌁</span>Medicamentos</a><a href="{% url 'record-list' %}"><span>▤</span>Histórico</a><a href="#saude"><span>♡</span>Saúde</a><a href="#clinicas"><span>⌖</span>Clínicas</a></nav>
+</body>
+</html>
