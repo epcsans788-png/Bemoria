@@ -28,6 +28,8 @@ def dashboard(request):
     dose_rows = []
     for medication in medications:
         for schedule in medication.schedules.filter(active=True):
+            if not schedule.is_scheduled_for(today):
+                continue
             scheduled_for = timezone.make_aware(datetime.combine(today, schedule.time))
             dose_log = DoseLog.objects.filter(schedule=schedule, scheduled_for=scheduled_for).first()
             dose_rows.append({"medication": medication, "schedule": schedule, "taken": bool(dose_log and dose_log.status == DoseLog.Status.TAKEN)})

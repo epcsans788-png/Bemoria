@@ -31,6 +31,10 @@ class MedicationSchedule(models.Model):
     def __str__(self):
         return f"{self.medication.name} às {self.time:%H:%M}"
 
+    def is_scheduled_for(self, day):
+        """An empty weekdays list means every day; Python weekdays use Monday=0."""
+        return self.active and (not self.weekdays or day.weekday() in self.weekdays)
+
 
 class DoseLog(models.Model):
     class Status(models.TextChoices):

@@ -20,6 +20,7 @@ def queue_due_medication_reminders():
     reminders = [
         {"user_id": schedule.medication.user_id, "medication": schedule.medication.name, "time": schedule.time.strftime("%H:%M")}
         for schedule in due
+        if schedule.is_scheduled_for(current.date())
     ]
     for reminder in reminders:
         logger.info("Medication reminder due: user=%s medication=%s time=%s", reminder["user_id"], reminder["medication"], reminder["time"])
