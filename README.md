@@ -1,46 +1,81 @@
 # Bemoria
 
-Aplicação web para organizar medicamentos, lembretes e informações de saúde, baseada nas referências visuais fornecidas.
+Bemoria é um espaço pessoal para organizar medicamentos, horários, informações de saúde, documentos e locais de cuidado. A interface foi desenhada para celular e computador.
 
-## Escopo inicial
+## Recursos
 
-- Cadastro e autenticação de usuários
-- Painel com resumo dos medicamentos do dia
-- Cadastro de medicamentos, horários e confirmação de doses
-- Histórico médico com consultas, exames, vacinas e documentos
-- Área de saúde com condições e materiais educativos
-- API Django REST Framework e banco PostgreSQL
+- Conta, login e recuperação de senha.
+- Painel diário com checklist de doses, registros tomados ou desmarcados e histórico.
+- Cadastro, edição e arquivamento de medicamentos, horários e dias da semana.
+- Perfil editável com tipo sanguíneo, alergias, data de nascimento, altura, peso, telefone, foto e contato de emergência.
+- Cartão privado de acesso rápido às informações de emergência cadastradas.
+- Linha do tempo de consultas, exames, vacinas e anotações.
+- Envio, download e remoção de documentos médicos; os arquivos exigem autenticação.
+- Acompanhamento pessoal de condições de saúde.
+- Biblioteca de materiais públicos com fonte identificada.
+- Lista privada de clínicas salvas, com busca por nome, especialidade ou endereço.
+- Lembretes de medicamento enviados por e-mail quando o Celery está rodando.
+- API REST com autenticação JWT e documentação Swagger.
 
-## Estrutura
+## Tecnologias
 
-- `bemoria/`: configuração Django e Celery
-- `health/`: modelos e páginas da área de saúde
-- `templates/` e `static/`: interface responsiva
-- `docs/`: requisitos iniciais
-- `docker-compose.yml`: PostgreSQL e Redis para desenvolvimento local
-
-## Desenvolvimento
-
-Os requisitos e dados exibidos nas imagens são referências; nomes, diagnósticos e valores são exemplos, não dados reais. A versão atual é um primeiro esqueleto funcional e ainda não deve receber dados médicos reais.
+- Django, Django REST Framework e Django ORM
+- PostgreSQL
+- Simple JWT e Django Auth
+- Celery e Redis
+- Django Storage local para desenvolvimento
+- drf-spectacular / Swagger e django-cors-headers
+- pytest, pytest-django e DRF APIClient
+- Django Templates e CSS responsivo; Node.js não é necessário
 
 ## Requisitos locais
 
 - Python 3.13 (64 bits)
-- Docker Desktop com WSL 2, para PostgreSQL e Redis locais
+- Docker Desktop com WSL 2, para PostgreSQL e Redis
 
-Não é necessário instalar Node.js para esta primeira interface, que usa templates Django.
+## Preparar e iniciar
 
-## Preparar o ambiente
+No terminal PowerShell do VS Code, na pasta do projeto:
 
-1. Crie o arquivo local de ambiente a partir do exemplo: `Copy-Item .env.example .env`.
-2. Crie e ative um ambiente virtual: `python -m venv .venv` e `\.venv\Scripts\Activate.ps1`.
-3. Instale os pacotes Python: `python -m pip install -r requirements.txt`.
-4. Inicie os serviços: `docker compose up -d`.
-5. Aplique as migrações: `python manage.py migrate`.
-6. Inicie o app: `python manage.py runserver` e abra `http://127.0.0.1:8000`.
+1. Se ainda não existir `.env`, crie a partir do exemplo: `Copy-Item .env.example .env`.
+2. Crie o ambiente virtual: `python -m venv .venv`.
+3. Instale as dependências: `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.
+4. Inicie PostgreSQL e Redis: `docker compose up -d`.
+5. Aplique as migrações: `.\.venv\Scripts\python.exe manage.py migrate`.
+6. Inicie o site: `.\.venv\Scripts\python.exe manage.py runserver`.
+7. Abra `http://127.0.0.1:8000` e crie sua conta em `/register/`.
 
-Crie a conta pela interface em `/register/`; o endpoint de documentação da API fica em `/api/docs/`. A API usa JWT em `/api/token/` e `/api/token/refresh/`. O PostgreSQL do Docker é publicado na porta `5433` para evitar conflito com instalações locais.
+O PostgreSQL do Docker usa a porta local `5433`. No modo de desenvolvimento, os e-mails de recuperação e os lembretes aparecem no terminal do Django. Para receber e-mails de verdade, configure `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` e `DEFAULT_FROM_EMAIL` no ambiente.
 
-Para processar lembretes em desenvolvimento, abra dois terminais adicionais com o ambiente virtual ativo e rode `celery -A bemoria worker -l info --pool=solo` e `celery -A bemoria beat -l info`. Nesta etapa o worker registra os horários devidos no log; entrega de notificações ainda será integrada.
+## Ativar lembretes
 
-As credenciais de `.env.example` são somente para desenvolvimento local; substitua-as antes de qualquer publicação.
+Mantenha o Django em um terminal. Em outros dois terminais do VS Code, inicie o worker e o agendador:
+
+```powershell
+.\.venv\Scripts\celery.exe -A bemoria worker -l info --pool=solo
+```
+
+```powershell
+.\.venv\Scripts\celery.exe -A bemoria beat -l info
+```
+
+O agendador verifica os horários a cada minuto. Em desenvolvimento, os e-mails são impressos no terminal do worker por meio do backend de e-mail do Django.
+
+## Endereços úteis
+
+- `/perfil/` — informações pessoais e foto
+- `/emergencia/` — cartão de emergência privado
+- `/medicamentos/` — rotina e horários
+- `/historico/` e `/historico/doses/` — linha do tempo de saúde e doses
+- `/documentos/` — arquivos privados
+- `/saude/` — condições e biblioteca educativa
+- `/clinicas/` — locais salvos e busca
+- `/api/docs/` — documentação da API
+
+## Testes e segurança
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Use apenas dados fictícios nesta versão acadêmica local. Antes de qualquer implantação pública ou uso com dados médicos reais, é necessário configurar armazenamento, envio de e-mail, backups, HTTPS e os controles de privacidade adequados. Os materiais educativos são referências públicas e não substituem aconselhamento profissional.

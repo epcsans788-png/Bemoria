@@ -1,16 +1,12 @@
-{% load static %}
-<!doctype html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cadastrar medicamento · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}"></head>
-<body class="auth-page">
-  <main class="auth-card form-card">
-    <a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">✚</span><span>Bemoria</span></a>
-    <h1>Cadastrar medicamento</h1><p class="muted">Registre as informações conforme a orientação recebida do seu profissional de saúde.</p>
-    <form method="post">{% csrf_token %}
-      {% for field in form %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small class="field-help">{{ field.help_text }}</small>{% endif %}{% if field.errors %}<span class="form-error">{{ field.errors|join:", " }}</span>{% endif %}{% endfor %}
-      {% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors|join:", " }}</p>{% endif %}
-      <div class="form-actions"><a class="button secondary" href="{% url 'medication-list' %}">Cancelar</a><button class="button primary" type="submit">Salvar medicamento</button></div>
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} · Bemoria{% endblock %}
+{% block content %}
+  <section class="page-heading"><div><p class="eyebrow">SUA ROTINA</p><h1>{{ page_title }}</h1><p>Registre conforme a orientação que você recebeu.</p></div><a class="button soft" href="{% url 'medication-list' %}">← Voltar</a></section>
+  <section class="panel form-panel form-card">
+    <form method="post" class="form-grid">{% csrf_token %}
+      {% for field in form %}<div class="field{% if field.name == 'instructions' %} full-span{% endif %}{% if field.name == 'schedule_weekdays' %} full-span days-field{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}{% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}</div>{% endfor %}
+      {% if form.non_field_errors %}<div class="field-error full-span">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="form-actions"><a class="button soft" href="{% url 'medication-list' %}">Cancelar</a><button class="button primary" type="submit">Salvar medicamento</button></div>
     </form>
-    <p class="tiny muted">O Bemoria organiza seus registros e não substitui orientação médica.</p>
-  </main>
-</body></html>
+  </section>
+{% endblock %}

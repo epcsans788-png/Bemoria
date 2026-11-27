@@ -1,14 +1,19 @@
 from datetime import date, datetime, time
+from io import BytesIO
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.core import mail
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
+from PIL import Image
 from rest_framework.test import APIClient
 
-from health.models import DoseLog, HealthRecord, MedicalDocument, Medication, MedicationSchedule
+from health.models import DoseLog, HealthCondition, HealthProfile, HealthRecord, MedicalClinic, MedicalDocument, Medication, MedicationSchedule
+from health.tasks import queue_due_medication_reminders
 from health.serializers import MedicalDocumentSerializer, MedicationSerializer
 
 
@@ -94,6 +99,146 @@ class MedicalDocumentValidationTests(SimpleTestCase):
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("file", serializer.errors)
+
+
+class BemoriaWebFlowTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="bemoria-user", email="user@example.com", password="long-passphrase-123")
+        self.other_user = User.objects.create_user(username="bemoria-other", email="other@example.com", password="long-passphrase-123")
+        self.client = Client()
+        self.client.force_login(self.user)
+
+    def test_new_sections_render_for_authenticated_users(self):
+        for path in ("/", "/perfil/", "/emergencia/", "/documentos/", "/saude/", "/clinicas/", "/historico/doses/"):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 200)
+
+    def test_profile_form_updates_user_and_health_information(self):
+        response = self.client.post("/perfil/", {
+            "first_name": "Beatriz", "last_name": "Lima", "email": "beatriz@example.com",
+            "phone": "11999990000", "birth_date": "1990-04-10", "blood_type": "O+",
+            "allergies": "Penicilina", "height_cm": "168", "weight_kg": "62.5",
+            "emergency_contact_name": "Contato", "emergency_contact_phone": "11888880000",
+            "emergency_notes": "Informação pessoal",
+        })
+
+        self.assertRedirects(response, "/perfil/")
+        self.user.refresh_from_db()
+        profile = self.user.health_profile
+        self.assertEqual(self.user.first_name, "Beatriz")
+        self.assertEqual(self.user.email, "beatriz@example.com")
+        self.assertEqual(profile.blood_type, "O+")
+        self.assertEqual(profile.allergies, "Penicilina")
+
+    def test_profile_photo_and_documents_are_private(self):
+        image_buffer = BytesIO()
+        Image.new("RGB", (8, 8), "green").save(image_buffer, format="PNG")
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post("/perfil/", {
+                "first_name": "", "last_name": "", "email": "user@example.com", "phone": "", "birth_date": "",
+                "blood_type": "", "allergies": "", "height_cm": "", "weight_kg": "", "emergency_contact_name": "",
+                "emergency_contact_phone": "", "emergency_notes": "",
+                "profile_photo": SimpleUploadedFile("photo.png", image_buffer.getvalue(), content_type="image/png"),
+            })
+            self.assertRedirects(response, "/perfil/")
+            self.assertTrue(self.user.health_profile.profile_photo.name)
+            self.client.force_login(self.other_user)
+            self.assertEqual(self.client.get("/perfil/foto/").status_code, 404)
+            self.client.force_login(self.user)
+            clear_response = self.client.post("/perfil/", {
+                "first_name": "", "last_name": "", "email": "user@example.com", "phone": "", "birth_date": "",
+                "blood_type": "", "allergies": "", "height_cm": "", "weight_kg": "", "emergency_contact_name": "",
+                "emergency_contact_phone": "", "emergency_notes": "", "remove_profile_photo": "on",
+            })
+            self.assertRedirects(clear_response, "/perfil/")
+            self.user.health_profile.refresh_from_db()
+            self.assertFalse(self.user.health_profile.profile_photo)
+
+    def test_document_upload_download_and_removal(self):
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post("/documentos/", {"title": "Exame", "file": SimpleUploadedFile("exam.pdf", b"%PDF-1.4 contents", content_type="application/pdf")})
+            self.assertRedirects(response, "/documentos/")
+            document = MedicalDocument.objects.get(user=self.user)
+            self.assertEqual(document.user_id, self.user.pk)
+            other_client = Client()
+            other_client.force_login(self.other_user)
+            self.assertEqual(other_client.get(f"/documentos/{document.pk}/baixar/").status_code, 404)
+            download = self.client.get(f"/documentos/{document.pk}/baixar/")
+            self.assertEqual(download.status_code, 200)
+            self.assertIn(b"%PDF-1.4", download.content)
+            self.assertIn("attachment;", download["Content-Disposition"])
+            self.assertRedirects(self.client.post(f"/documentos/{document.pk}/remover/"), "/documentos/")
+            self.assertFalse(MedicalDocument.objects.filter(pk=document.pk).exists())
+
+    def test_conditions_and_clinics_belong_only_to_their_owner(self):
+        self.client.post("/saude/", {"name": "Acompanhamento pessoal", "notes": "Minha anotação", "diagnosed_on": "", "active": "on"})
+        self.client.post("/clinicas/", {"name": "Clínica da família", "specialty": "", "phone": "", "address": "", "website": "", "notes": ""})
+        self.assertTrue(HealthCondition.objects.filter(user=self.user).exists())
+        self.assertTrue(MedicalClinic.objects.filter(user=self.user).exists())
+        self.assertFalse(HealthCondition.objects.filter(user=self.other_user).exists())
+        self.assertFalse(MedicalClinic.objects.filter(user=self.other_user).exists())
+
+    def test_medication_edit_keeps_previous_dose_log(self):
+        medication = Medication.objects.create(user=self.user, name="Exemplo", dosage="1 comprimido")
+        schedule = MedicationSchedule.objects.create(medication=medication, time=time(8, 0))
+        due = timezone.make_aware(datetime.combine(timezone.localdate(), schedule.time))
+        dose = DoseLog.objects.create(schedule=schedule, scheduled_for=due, status=DoseLog.Status.TAKEN)
+
+        response = self.client.post(f"/medicamentos/{medication.pk}/editar/", {
+            "name": "Exemplo", "dosage": "2 comprimidos", "instructions": "Com água",
+            "schedule_times": "09:00, 21:00", "schedule_weekdays": ["0", "2", "4"],
+        })
+
+        self.assertRedirects(response, "/medicamentos/")
+        schedule.refresh_from_db()
+        self.assertFalse(schedule.active)
+        self.assertTrue(DoseLog.objects.filter(pk=dose.pk).exists())
+        self.assertEqual(list(medication.schedules.filter(active=True).values_list("weekdays", flat=True)), [[0, 2, 4], [0, 2, 4]])
+
+    def test_password_reset_sends_recovery_link(self):
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            response = self.client.post("/senha/esqueci/", {"email": self.user.email})
+            self.assertRedirects(response, "/senha/enviado/")
+            self.assertEqual(len(mail.outbox), 1)
+            self.assertIn("senha/redefinir/", mail.outbox[0].body)
+
+    def test_profile_and_sensitive_areas_require_login(self):
+        anonymous = Client()
+        for path in ("/perfil/", "/emergencia/", "/documentos/", "/saude/", "/clinicas/", "/historico/doses/"):
+            with self.subTest(path=path):
+                self.assertEqual(anonymous.get(path).status_code, 302)
+
+    def test_health_library_has_publicly_sourced_resources(self):
+        response = self.client.get("/saude/")
+        self.assertContains(response, "Ministério da Saúde")
+        self.assertContains(response, "Canal Saúde")
+
+    def test_checklist_can_record_a_dose_as_skipped_without_deleting_history(self):
+        medication = Medication.objects.create(user=self.user, name="Dose", dosage="1")
+        schedule = MedicationSchedule.objects.create(medication=medication, time=time(8, 0), weekdays=[])
+        due = timezone.make_aware(datetime.combine(timezone.localdate(), schedule.time))
+        DoseLog.objects.create(schedule=schedule, scheduled_for=due, status=DoseLog.Status.TAKEN)
+
+        response = self.client.post(f"/medicamentos/horarios/{schedule.pk}/tomar/", {"taken": ""})
+
+        self.assertRedirects(response, "/")
+        log = DoseLog.objects.get(schedule=schedule, scheduled_for=due)
+        self.assertEqual(log.status, DoseLog.Status.SKIPPED)
+
+
+class MedicationReminderTests(TestCase):
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_due_scheduled_medication_sends_an_email_reminder(self):
+        current = timezone.make_aware(datetime(2026, 11, 23, 8, 0))
+        user = User.objects.create_user(username="reminder-user", email="reminder@example.com", password="long-passphrase-123")
+        medication = Medication.objects.create(user=user, name="Remédio", dosage="1 dose")
+        MedicationSchedule.objects.create(medication=medication, time=time(8, 0), weekdays=[])
+        with patch("health.tasks.timezone.localtime", return_value=current):
+            reminders = queue_due_medication_reminders.run()
+
+        self.assertEqual(len(reminders), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Remédio", mail.outbox[0].subject)
 
     def test_rejects_pdf_with_invalid_signature(self):
         uploaded = SimpleUploadedFile("fake.pdf", b"not really a PDF", content_type="application/pdf")

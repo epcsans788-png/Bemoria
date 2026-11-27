@@ -1,7 +1,6 @@
-{% load static %}
-<!doctype html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Novo registro · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}"></head>
-<body class="auth-page"><main class="auth-card form-card"><a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">✚</span><span>Bemoria</span></a><h1>Adicionar ao histórico</h1><p class="muted">Registre informações pessoais para organizar seu histórico.</p>
-  <form method="post">{% csrf_token %}{% for field in form %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<span class="form-error">{{ field.errors|join:", " }}</span>{% endif %}{% endfor %}{% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors|join:", " }}</p>{% endif %}<div class="form-actions"><a class="button secondary" href="{% url 'record-list' %}">Cancelar</a><button class="button primary" type="submit">Salvar registro</button></div></form>
-  <p class="tiny muted">Este espaço organiza registros; não substitui orientação médica.</p></main></body></html>
+{% extends 'base.html' %}
+{% block title %}Novo registro · Bemoria{% endblock %}
+{% block content %}
+  <section class="page-heading"><div><p class="eyebrow">LINHA DO TEMPO</p><h1>Adicionar registro</h1><p>Guarde uma informação para consultar depois.</p></div><a class="button soft" href="{% url 'record-list' %}">← Voltar</a></section>
+  <section class="panel form-panel form-card"><form method="post" class="form-grid">{% csrf_token %}{% for field in form %}<div class="field{% if field.name == 'details' %} full-span{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}</div>{% endfor %}<div class="form-actions"><a class="button soft" href="{% url 'record-list' %}">Cancelar</a><button class="button primary" type="submit">Salvar no histórico</button></div></form></section>
+{% endblock %}

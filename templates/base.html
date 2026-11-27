@@ -1,0 +1,45 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#103b36">
+  <title>{% block title %}Bemoria · cuidado no seu ritmo{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'health/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="app-body">
+  <header class="topbar">
+    <a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 7v26M7 20h26"/><circle cx="20" cy="20" r="17"/></svg></span><span>bemoria<span class="brand-dot">.</span></span></a>
+    <div class="top-actions"><span class="top-greeting">Olá, {{ request.user.first_name|default:request.user.username }}</span><a class="profile-shortcut" href="{% url 'profile' %}" aria-label="Abrir perfil">{{ request.user.first_name|default:request.user.username|first|upper }}</a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="text-button">Sair</button></form></div>
+  </header>
+  <div class="app-frame">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <p class="nav-caption">SEU ESPAÇO</p>
+      <a class="side-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><span>⌂</span>Visão geral</a>
+      <a class="side-link {% if 'medication' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'medication-list' %}"><span>◉</span>Medicamentos</a>
+      <a class="side-link {% if request.resolver_match.url_name == 'dose-history' %}active{% endif %}" href="{% url 'dose-history' %}"><span>◷</span>Histórico de doses</a>
+      <a class="side-link {% if request.resolver_match.url_name == 'record-list' or request.resolver_match.url_name == 'record-create' %}active{% endif %}" href="{% url 'record-list' %}"><span>▤</span>Histórico de saúde</a>
+      <p class="nav-caption nav-caption-spaced">CUIDADO E APOIO</p>
+      <a class="side-link {% if request.resolver_match.url_name == 'health-area' %}active{% endif %}" href="{% url 'health-area' %}"><span>♡</span>Saúde e conteúdos</a>
+      <a class="side-link {% if request.resolver_match.url_name == 'document-list' %}active{% endif %}" href="{% url 'document-list' %}"><span>▧</span>Documentos</a>
+      <a class="side-link {% if request.resolver_match.url_name == 'clinic-list' %}active{% endif %}" href="{% url 'clinic-list' %}"><span>⌖</span>Minhas clínicas</a>
+      <a class="side-link {% if request.resolver_match.url_name == 'emergency-card' %}active{% endif %}" href="{% url 'emergency-card' %}"><span>＋</span>Cartão de emergência</a>
+      <div class="sidebar-bottom"><div class="privacy-chip"><span>✳</span><p><strong>Seu cuidado, no seu ritmo.</strong><br>Um espaço pessoal para organizar informações.</p></div><a class="side-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}"><span>◌</span>Meu perfil</a></div>
+    </aside>
+    <main class="main-content">
+      {% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+      <footer class="site-footer">Bemoria <span>·</span> organização pessoal de saúde</footer>
+    </main>
+  </div>
+  <nav class="mobile-nav" aria-label="Navegação móvel">
+    <a class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><span>⌂</span>Início</a>
+    <a class="{% if 'medication' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'medication-list' %}"><span>◉</span>Remédios</a>
+    <a class="{% if request.resolver_match.url_name == 'record-list' or request.resolver_match.url_name == 'record-create' or request.resolver_match.url_name == 'dose-history' %}active{% endif %}" href="{% url 'record-list' %}"><span>▤</span>Histórico</a>
+    <a class="{% if request.resolver_match.url_name == 'health-area' %}active{% endif %}" href="{% url 'health-area' %}"><span>♡</span>Saúde</a>
+    <a class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}"><span>◌</span>Perfil</a>
+  </nav>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

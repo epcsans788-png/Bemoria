@@ -1,12 +1,7 @@
-{% load static %}
-<!doctype html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Histórico · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}"></head>
-<body>
-  <header class="topbar"><a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">✚</span><span>Bemoria</span></a><div class="top-actions"><a class="text-button" href="{% url 'dashboard' %}">Início</a></div></header>
-  <main class="shell"><section class="page-heading"><div><p class="eyebrow">ACOMPANHAMENTO</p><h1>Histórico de saúde</h1><p class="muted">Consultas, exames, vacinas e anotações.</p></div><a class="button primary" href="{% url 'record-create' %}">＋ Adicionar registro</a></section>
-    {% for message in messages %}<div class="notice">{{ message }}</div>{% endfor %}
-    <section class="panel record-panel">{% for record in records %}<article class="record-row"><span class="record-dot"></span><div class="grow"><strong>{{ record.title }}</strong><p class="muted">{{ record.get_kind_display }} · {{ record.occurred_on|date:"d/m/Y" }}</p>{% if record.details %}<p class="record-details">{{ record.details|linebreaksbr }}</p>{% endif %}</div></article>{% empty %}<div class="empty-state"><span class="empty-icon">＋</span><h3>Seu histórico começa aqui</h3><p>Adicione uma consulta, exame, vacina ou anotação para manter tudo organizado.</p><a class="button primary" href="{% url 'record-create' %}">Adicionar registro</a></div>{% endfor %}</section>
-  </main>
-  <nav class="bottom-nav"><a href="{% url 'dashboard' %}"><span>⌂</span>Início</a><a href="{% url 'medication-list' %}"><span>⌁</span>Medicamentos</a><a class="active" href="{% url 'record-list' %}"><span>▤</span>Histórico</a><a href="#saude"><span>♡</span>Saúde</a><a href="#clinicas"><span>⌖</span>Clínicas</a></nav>
-</body></html>
+{% extends 'base.html' %}
+{% block title %}Histórico de saúde · Bemoria{% endblock %}
+{% block content %}
+  <section class="page-heading"><div><p class="eyebrow">LINHA DO TEMPO</p><h1>Histórico de saúde</h1><p>Consultas, exames, vacinas e anotações em ordem cronológica.</p></div><div class="button-row"><a class="button soft" href="{% url 'document-list' %}">▧ Documentos</a><a class="button primary" href="{% url 'record-create' %}">＋ Novo registro</a></div></section>
+  <section class="panel record-panel">{% for record in records %}<article class="record-row"><span class="record-dot"></span><div class="grow"><strong>{{ record.title }}</strong><p class="muted">{{ record.get_kind_display }} · {{ record.occurred_on|date:"d/m/Y" }}</p>{% if record.details %}<p class="record-details">{{ record.details|linebreaksbr }}</p>{% endif %}</div></article>{% empty %}<div class="empty-state"><span class="empty-icon">▤</span><h3>Seu histórico começa aqui</h3><p>Adicione uma consulta, exame, vacina ou anotação que deseja guardar.</p><a class="button primary" href="{% url 'record-create' %}">Adicionar registro</a></div>{% endfor %}</section>
+  <section class="panel" style="margin-top:15px"><div class="panel-heading"><div><p class="eyebrow">ROTINA</p><h2>Registro de doses</h2></div><a class="link" href="{% url 'dose-history' %}">Ver histórico completo →</a></div><p class="muted">Consulte as doses marcadas e as que você desmarcou no checklist.</p></section>
+{% endblock %}

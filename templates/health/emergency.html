@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Cartão de emergência · Bemoria{% endblock %}
+{% block content %}
+  <section class="page-heading"><div><p class="eyebrow">ACESSO RÁPIDO</p><h1>Cartão de emergência</h1><p>Veja as informações que você escolheu guardar para consulta rápida.</p></div><a class="button primary" href="{% url 'profile' %}">Editar informações</a></section>
+  <div class="emergency-alert">Este cartão ajuda a organizar informações pessoais. Ele não é um documento médico oficial e não substitui atendimento de emergência.</div>
+  <section class="emergency-card"><p class="eyebrow" style="color:#b9d7c3">BEMORIA · INFORMAÇÕES PESSOAIS</p><h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
+    <div class="emergency-grid">
+      <div class="fact"><span>Tipo sanguíneo</span><strong>{% if profile.blood_type %}{{ profile.get_blood_type_display }}{% else %}Não informado{% endif %}</strong></div>
+      <div class="fact"><span>Alergias</span><strong>{{ profile.allergies|default:"Não informado"|linebreaksbr }}</strong></div>
+      <div class="fact"><span>Contato de emergência</span><strong>{{ profile.emergency_contact_name|default:"Não informado" }}</strong></div>
+      <div class="fact"><span>Telefone do contato</span><strong>{{ profile.emergency_contact_phone|default:"Não informado" }}</strong></div>
+      <div class="fact"><span>Seu telefone</span><strong>{{ profile.phone|default:"Não informado" }}</strong></div>
+      <div class="fact"><span>Observações</span><strong>{{ profile.emergency_notes|default:"Não informado"|linebreaksbr }}</strong></div>
+    </div>
+  </section>
+  <p class="site-note" style="margin-top:13px">Por segurança, este cartão exige que você esteja conectado à sua conta.</p>
+{% endblock %}

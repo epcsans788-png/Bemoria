@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Meu perfil · Bemoria{% endblock %}
+{% block content %}
+  <section class="page-heading"><div><p class="eyebrow">SEU ESPAÇO</p><h1>Meu perfil</h1><p>Escolha quais informações pessoais quer guardar no Bemoria.</p></div><a class="button secondary" href="{% url 'emergency-card' %}">＋ Cartão de emergência</a></section>
+  <div class="profile-layout">
+    <aside class="profile-card">
+      {% if profile.profile_photo %}<img class="profile-photo" src="{% url 'profile-photo' %}" alt="Foto de {{ request.user.first_name|default:request.user.username }}">{% else %}<div class="profile-photo">{{ request.user.first_name|default:request.user.username|first|upper }}</div>{% endif %}
+      <h2>{{ request.user.get_full_name|default:request.user.username }}</h2><p>{{ request.user.email }}</p>
+      <div class="profile-facts"><div class="fact"><span>Tipo sanguíneo</span><strong>{% if profile.blood_type %}{{ profile.get_blood_type_display }}{% else %}Não informado{% endif %}</strong></div><div class="fact"><span>Idade</span><strong>{% if profile.age != None %}{{ profile.age }} anos{% else %}Não informada{% endif %}</strong></div></div>
+      <hr class="hr"><a class="link" href="{% url 'emergency-card' %}">Ver cartão de emergência →</a>
+    </aside>
+    <section class="panel form-panel">
+      <div class="panel-heading"><div><p class="eyebrow">DADOS PESSOAIS</p><h2>Informações do perfil</h2></div></div>
+      <form method="post" enctype="multipart/form-data" class="form-grid">{% csrf_token %}
+        {% for field in form %}{% if field.name != 'remove_profile_photo' or profile.profile_photo %}<div class="field{% if field.name == 'allergies' or field.name == 'emergency_notes' or field.name == 'profile_photo' %} full-span{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}{% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}</div>{% endif %}{% endfor %}
+        {% if form.non_field_errors %}<div class="field-error full-span">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="form-actions"><button class="button primary" type="submit">Salvar perfil</button></div>
+      </form>
+      <p class="site-note" style="margin-top:14px">Essas informações são opcionais e podem ser alteradas por você. Tipo sanguíneo e alergias não são confirmados pelo Bemoria.</p>
+    </section>
+  </div>
+{% endblock %}

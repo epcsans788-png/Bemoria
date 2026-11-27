@@ -1,29 +1,35 @@
-{% load static %}
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Início · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}">
-</head>
-<body>
-  <header class="topbar"><a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">✚</span><span>Bemoria</span></a><div class="top-actions"><span class="welcome">Olá, {{ request.user.first_name|default:request.user.username }}</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="text-button">Sair</button></form></div></header>
-  <main class="shell">
-    <section class="greeting"><div><p class="eyebrow">{{ today|date:"l, d \d\e F"|capfirst }}</p><h1>Como podemos cuidar de você hoje?</h1><p class="muted">Sua rotina de saúde, organizada em um só lugar.</p></div><div class="avatar">{{ request.user.username|first|upper }}</div></section>
-    <section class="summary-grid">
-      <article class="summary-card"><span class="summary-icon mint">◷</span><div><span class="muted">Medicamentos ativos</span><strong>{{ medications|length }}</strong></div></article>
-      <article class="summary-card"><span class="summary-icon blue">♡</span><div><span class="muted">Registros recentes</span><strong>{{ records|length }}</strong></div></article>
-      <article class="summary-card"><span class="summary-icon peach">✦</span><div><span class="muted">Lembretes de hoje</span><strong>—</strong></div></article>
+{% extends 'base.html' %}
+{% block title %}Início · Bemoria{% endblock %}
+{% block content %}
+  <section class="greeting">
+    <div class="greeting-content"><p class="eyebrow">{{ today|date:"l, d \d\e F"|capfirst }}</p><h1>Um dia de cada vez.</h1><p>Sua rotina de saúde, organizada em um só lugar.</p></div>
+    {% if profile and profile.profile_photo %}<img class="greeting-avatar" src="{% url 'profile-photo' %}" alt="Foto de perfil">{% else %}<div class="greeting-avatar">{{ request.user.first_name|default:request.user.username|first|upper }}</div>{% endif %}
+  </section>
+  <section class="summary-grid" aria-label="Resumo do dia">
+    <article class="summary-card"><span class="summary-icon">◉</span><div><span>Em uso</span><strong>{{ medications|length }}</strong></div></article>
+    <article class="summary-card"><span class="summary-icon coral">◷</span><div><span>Horários de hoje</span><strong>{{ dose_rows|length }}</strong></div></article>
+    <article class="summary-card"><span class="summary-icon yellow">✓</span><div><span>Pendentes</span><strong>{{ pending_count }}</strong></div></article>
+  </section>
+  <div class="content-grid">
+    <section class="panel">
+      <div class="panel-heading"><div><p class="eyebrow">SEU PLANO DE HOJE</p><h2>Rotina de medicamentos</h2></div><a class="link" href="{% url 'medication-list' %}">Ver todos →</a></div>
+      {% if medications %}
+        {% if dose_rows %}<div class="checklist-heading"><div><h3>Marque quando tomar</h3></div><span class="check-count">{{ dose_rows|length }} horário{{ dose_rows|length|pluralize:"s" }}</span></div>
+          <div class="dose-list">{% for row in dose_rows %}<form class="checklist-row{% if row.taken %} is-taken{% elif row.skipped %} is-skipped{% endif %}" method="post" action="{% url 'mark-dose-taken' row.schedule.pk %}">{% csrf_token %}<label class="check-control"><input type="checkbox" name="taken" value="true"{% if row.taken %} checked{% endif %} onchange="this.form.submit()"><span class="checkmark" aria-hidden="true"></span><span class="sr-only">Marcar {{ row.medication.name }} das {{ row.schedule.time|time:"H:i" }} como tomada</span></label><div class="check-info"><strong>{{ row.schedule.time|time:"H:i" }}</strong><span>{{ row.medication.name }} · {{ row.medication.dosage }}</span></div><span class="check-status">{% if row.taken %}Tomada{% elif row.skipped %}Desmarcada{% else %}Pendente{% endif %}</span></form>{% endfor %}</div>
+        {% else %}<div class="empty-state"><span class="empty-icon">◷</span><h3>Sem horários para hoje</h3><p>Seus próximos horários aparecem aqui quando estiverem programados.</p></div>{% endif %}
+        <div class="button-row" style="margin-top:14px"><a class="button secondary" href="{% url 'medication-create' %}">＋ Adicionar medicamento</a><a class="button soft" href="{% url 'dose-history' %}">Ver histórico de doses</a></div>
+      {% else %}<div class="empty-state"><span class="empty-icon">＋</span><h3>Comece pela sua rotina</h3><p>Cadastre um medicamento e os horários que deseja acompanhar.</p><a class="button primary" href="{% url 'medication-create' %}">Adicionar medicamento</a></div>{% endif %}
     </section>
-    <div class="content-grid">
-      <section class="panel"><div class="panel-heading"><div><p class="eyebrow">SUA ROTINA</p><h2>Meus medicamentos</h2></div><a class="link" href="#medicamentos">Ver todos <span>→</span></a></div>
-        {% if medications %}<div class="med-list" id="medicamentos">{% for medication in medications %}<article class="med-row"><span class="med-symbol">✚</span><div class="grow"><strong>{{ medication.name }}</strong><p class="muted">{{ medication.dosage }}{% if medication.instructions %} · {{ medication.instructions }}{% endif %}</p></div></article>{% endfor %}</div><a href="{% url 'medication-list' %}" class="button secondary">Gerenciar medicamentos</a>{% if dose_rows %}<div class="checklist-heading"><div><p class="eyebrow">HOJE</p><h3>Checklist de horários</h3></div><span class="check-count">{{ dose_rows|length }} horário{{ dose_rows|length|pluralize:"s" }}</span></div><div class="dose-list">{% for row in dose_rows %}<form class="checklist-row{% if row.taken %} is-taken{% endif %}" method="post" action="{% url 'mark-dose-taken' row.schedule.pk %}">{% csrf_token %}<label class="check-control"><input type="checkbox" name="taken" value="true"{% if row.taken %} checked{% endif %} onchange="this.form.submit()"><span class="checkmark" aria-hidden="true"></span><span class="sr-only">Marcar {{ row.medication.name }} das {{ row.schedule.time|time:"H:i" }} como tomada</span></label><div class="check-info"><strong>{{ row.schedule.time|time:"H:i" }}</strong><span>{{ row.medication.name }} · {{ row.medication.dosage }}</span></div><span class="check-status">{% if row.taken %}Tomada{% else %}Pendente{% endif %}</span></form>{% endfor %}</div>{% endif %}{% else %}<div class="empty-state"><span class="empty-icon">＋</span><h3>Seu espaço começa aqui</h3><p>Cadastre seus medicamentos e organize os horários nesta lista.</p><a href="{% url 'medication-create' %}" class="button secondary">Cadastrar medicamento</a></div>{% endif %}
-      </section>
-      <section class="panel"><div class="panel-heading"><div><p class="eyebrow">ACOMPANHAMENTO</p><h2>Histórico de saúde</h2></div><a class="link" href="{% url 'record-list' %}">Ver histórico →</a></div>
-        {% if records %}<div class="record-list">{% for record in records %}<article class="record-row"><span class="record-dot"></span><div><strong>{{ record.title }}</strong><p class="muted">{{ record.get_kind_display }} · {{ record.occurred_on|date:"d/m/Y" }}</p></div></article>{% endfor %}</div>{% else %}<div class="empty-compact"><span>◎</span><p>Consultas, exames e vacinas registrados ficarão reunidos aqui.</p></div>{% endif %}
-      </section>
-    </div>
-    <section class="privacy-note"><span>♧</span><p><strong>Seus dados são pessoais.</strong> Esta versão está em desenvolvimento. Use apenas informações fictícias até a configuração de segurança e privacidade estar concluída.</p></section>
-  </main>
-  <nav class="bottom-nav"><a class="active" href="{% url 'dashboard' %}"><span>⌂</span>Início</a><a href="{% url 'medication-list' %}"><span>⌁</span>Medicamentos</a><a href="{% url 'record-list' %}"><span>▤</span>Histórico</a><a href="#saude"><span>♡</span>Saúde</a><a href="#clinicas"><span>⌖</span>Clínicas</a></nav>
-</body>
-</html>
+    <section class="panel">
+      <div class="panel-heading"><div><p class="eyebrow">ACOMPANHAMENTO</p><h2>Histórico de saúde</h2></div><a class="link" href="{% url 'record-list' %}">Abrir →</a></div>
+      {% if records %}<div class="record-list">{% for record in records %}<article class="record-row"><span class="record-dot"></span><div class="grow"><strong>{{ record.title }}</strong><p class="muted">{{ record.get_kind_display }} · {{ record.occurred_on|date:"d/m/Y" }}</p></div></article>{% endfor %}</div>{% else %}<div class="empty-state"><span class="empty-icon">▤</span><h3>Seu histórico começa aqui</h3><p>Guarde consultas, exames, vacinas e anotações em uma linha do tempo pessoal.</p><a class="button secondary" href="{% url 'record-create' %}">Adicionar registro</a></div>{% endif %}
+    </section>
+  </div>
+  <div class="content-grid" style="margin-top:17px">
+    <section class="panel"><div class="panel-heading"><div><p class="eyebrow">ACESSO RÁPIDO</p><h2>Informações importantes</h2></div><a class="link" href="{% url 'profile' %}">Editar perfil →</a></div>
+      <div class="button-row"><a class="button secondary" href="{% url 'emergency-card' %}">＋ Cartão de emergência</a><a class="button soft" href="{% url 'document-list' %}">▧ Documentos médicos</a></div>
+      {% if profile and profile.blood_type or profile and profile.allergies %}<div class="emergency-alert" style="margin-top:15px">{% if profile.blood_type %}<strong>Tipo sanguíneo:</strong> {{ profile.get_blood_type_display }}{% endif %}{% if profile.allergies %}<br><strong>Alergias cadastradas:</strong> {{ profile.allergies|truncatechars:100 }}{% endif %}</div>{% else %}<p class="muted" style="margin-top:13px">Adicione dados que você deseja encontrar rapidamente em uma emergência.</p>{% endif %}
+    </section>
+    <section class="panel"><div class="panel-heading"><div><p class="eyebrow">SEU BEM-ESTAR</p><h2>Mais do Bemoria</h2></div></div><div class="button-row"><a class="button secondary" href="{% url 'health-area' %}">♡ Saúde e conteúdos</a><a class="button soft" href="{% url 'clinic-list' %}">⌖ Minhas clínicas</a></div><p class="site-note" style="margin-top:14px">O Bemoria ajuda a organizar suas informações pessoais. Ele não substitui o acompanhamento de profissionais de saúde.</p></section>
+  </div>
+{% endblock %}

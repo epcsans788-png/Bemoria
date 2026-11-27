@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}Histórico de doses · Bemoria{% endblock %}
+{% block content %}
+  <section class="page-heading"><div><p class="eyebrow">SUA ROTINA</p><h1>Histórico de doses</h1><p>Doses registradas pelo checklist.</p></div><a class="button soft" href="{% url 'dashboard' %}">← Voltar ao dia</a></section>
+  <section class="panel">{% for log in logs %}<article class="stack-row"><span class="med-symbol">{% if log.status == 'taken' %}✓{% else %}◷{% endif %}</span><div class="grow"><strong>{{ log.schedule.medication.name }}</strong><p class="muted">{{ log.schedule.medication.dosage }} · horário previsto {{ log.schedule.time|time:"H:i" }}</p></div><span class="dose-history-date">{{ log.scheduled_for|date:"d/m/Y H:i" }}</span><span class="dose-history-status {% if log.status == 'taken' %}status-taken{% else %}status-skipped{% endif %}">{% if log.status == 'taken' %}Tomada{% else %}Desmarcada{% endif %}</span></article>{% empty %}<div class="empty-state"><span class="empty-icon">◷</span><h3>Nenhuma dose registrada ainda</h3><p>Quando você marcar ou desmarcar um horário no checklist, ele ficará registrado aqui.</p><a class="button secondary" href="{% url 'dashboard' %}">Abrir checklist</a></div>{% endfor %}</section>
+  <p class="site-note" style="margin-top:13px">O histórico mostra registros do checklist e não confirma que uma dose foi ingerida.</p>
+{% endblock %}

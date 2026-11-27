@@ -1,15 +1,9 @@
-{% load static %}
-<!doctype html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Medicamentos · Bemoria</title><link rel="stylesheet" href="{% static 'health/app.css' %}"></head>
-<body>
-  <header class="topbar"><a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">✚</span><span>Bemoria</span></a><div class="top-actions"><span class="welcome">{{ request.user.first_name|default:request.user.username }}</span><a class="text-button" href="{% url 'dashboard' %}">Início</a></div></header>
-  <main class="shell">
-    <section class="page-heading"><div><p class="eyebrow">SUA ROTINA</p><h1>Meus medicamentos</h1><p class="muted">Organize seus horários e instruções pessoais.</p></div><a class="button primary" href="{% url 'medication-create' %}">＋ Cadastrar medicamento</a></section>
-    {% for message in messages %}<div class="notice">{{ message }}</div>{% endfor %}
-    <section class="panel medication-panel">
-      {% for medication in medications %}<article class="med-row"><span class="med-symbol">✚</span><div class="grow"><strong>{{ medication.name }}</strong><p class="muted">{{ medication.dosage }}{% if medication.instructions %} · {{ medication.instructions }}{% endif %}</p><div class="time-pills">{% for schedule in medication.schedules.all %}<span>{{ schedule.time|time:"H:i" }}</span>{% empty %}<span>Sem horário cadastrado</span>{% endfor %}</div></div><a class="remove-link" href="{% url 'medication-delete' medication.pk %}">Remover</a></article>{% empty %}<div class="empty-state"><span class="empty-icon">＋</span><h3>Nenhum medicamento cadastrado</h3><p>Adicione um medicamento para organizar seus horários.</p><a class="button primary" href="{% url 'medication-create' %}">Cadastrar medicamento</a></div>{% endfor %}
-    </section>
-  </main>
-  <nav class="bottom-nav"><a href="{% url 'dashboard' %}"><span>⌂</span>Início</a><a class="active" href="{% url 'medication-list' %}"><span>⌁</span>Medicamentos</a><a href="#historico"><span>▤</span>Histórico</a><a href="#saude"><span>♡</span>Saúde</a><a href="#clinicas"><span>⌖</span>Clínicas</a></nav>
-</body></html>
+{% extends 'base.html' %}
+{% block title %}Medicamentos · Bemoria{% endblock %}
+{% block content %}
+  <section class="page-heading"><div><p class="eyebrow">SUA ROTINA</p><h1>Medicamentos</h1><p>Organize horários e acompanhe as doses no seu dia.</p></div><a class="button primary" href="{% url 'medication-create' %}">＋ Adicionar medicamento</a></section>
+  <section class="panel medication-panel">
+    {% for medication in medications %}<article class="med-row"><span class="med-symbol">◉</span><div class="grow"><strong>{{ medication.name }}</strong><p class="muted">{{ medication.dosage }}{% if medication.instructions %} · {{ medication.instructions }}{% endif %}</p><div class="time-pills">{% for schedule in medication.schedules.all %}{% if schedule.active %}<span>{{ schedule.time|time:"H:i" }} · {{ schedule.weekday_labels }}</span>{% endif %}{% empty %}<span>Sem horário</span>{% endfor %}</div></div><div class="button-row"><a class="button soft small" href="{% url 'medication-update' medication.pk %}">Editar</a><a class="remove-link" href="{% url 'medication-delete' medication.pk %}">Remover</a></div></article>{% empty %}<div class="empty-state"><span class="empty-icon">◉</span><h3>Nenhum medicamento cadastrado</h3><p>Adicione medicamentos para montar seu checklist diário.</p><a class="button primary" href="{% url 'medication-create' %}">Adicionar medicamento</a></div>{% endfor %}
+  </section>
+  <p class="site-note" style="margin-top:14px">Cadastre os medicamentos conforme a orientação do profissional que acompanha você.</p>
+{% endblock %}
